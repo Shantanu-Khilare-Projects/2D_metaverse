@@ -1,0 +1,91 @@
+// DATABASE_URL="postgresql://user:password@localhost:5432/mydatabase?schema=public"
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum PlayerState {
+  online
+  offline
+  deleted
+  banned
+}
+
+enum GameState {
+  ongoing
+  finished
+  waiting 
+  cancelled
+}
+
+enum messageStatus {
+  sent
+  deleted
+  removed
+} 
+
+enum roomStatus {
+  active
+  inactive
+  deleted
+}
+
+model Player {
+  id String   @id 
+  username String   @unique
+  password String //hashed
+  createdAt DateTime @default(now())
+  position Json
+
+  avatar Avatar?
+  playerState PlayerState //online, offline, deleted, banned(cantChat)
+  gamesWon      Game[] @relation("gamesWon")
+  blackGamesWon Game[] @relation("blackGamesWon")
+  whiteGamesWon Game[] @relation("whiteGamesWon")
+  messagesSent Message[] @relation("sender")
+  // roomId String?
+  // playersJoined Room @relation(fields: [roomId], references: [id], name:"playersJoined")
+}
+
+model Avatar {
+  id String @id @default(uuid())
+  playerId String @unique
+  appearanceData Json
+
+  player Player @relation(fields: [playerId], references: [id])
+}
+
+model Game {
+  id String @id
+  whiteId String
+  blackId String
+  gameState GameState //ongoing, finished, cancelled, waiting
+  winnerId String
+  createdAt DateTime @default(now())
+
+  white Player @relation(fields: [whiteId], references: [id], name: "whiteGamesWon")
+  black Player @relation(fields: [blackId], references: [id], name: "blackGamesWon")
+  winner Player @relation(fields: [winnerId], references: [id], name: "gamesWon")
+}
+
+model Room {
+  id String @id
+  name String
+  max_length Json
+  roomStatus roomStatus //active, inactive, deleted
+  // playersJoined Player[] @relation("playersJoined")
+}
+
+model Message {
+  id String @id
+  senderId String
+  message String
+  messageStatus messageStatus //sent, deleted, removed
+
+  sender Player @relation(fields:[senderId], references: [id], name: "sender")
+}
